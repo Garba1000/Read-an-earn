@@ -110,7 +110,7 @@ if (Date.now() - lastReset > 86400000) {
 }
 
 function getRandomReward(){
-  return Math.floor(Math.random() * 71) + 80; // 80 -150
+  return Math.floor(Math.random() * 71) + 80;
 }
 
 // ===== WATCH AD =====
@@ -185,10 +185,62 @@ function showTaskAd(){
   }, {once:true});
 }
 
-// ===== ARTICLE =====
+// ===== ARTICLES SYSTEM =====
+const articles = [
+"Making money online is becoming easier every day. Many platforms now allow users to earn by performing simple tasks such as reading articles, watching ads, or completing surveys. Consistency is key when trying to build a steady income stream online.",
+"Digital skills are important in today’s world. Learning simple skills like content writing, social media management, or basic graphic design can help you earn money online. Start small and improve gradually for better results.",
+"Saving money is just as important as earning it. Always track your income and expenses to understand your financial habits. This helps you make better decisions and grow your earnings over time.",
+"Mobile earning apps are gaining popularity. These apps reward users for completing small activities daily. While they may not make you rich instantly, they can provide a steady side income when used regularly.",
+"Time management is essential for success. Allocate specific time daily for earning tasks and avoid distractions. This improves productivity and helps you earn more efficiently over time."
+];
+
+let currentArticleIndex = -1;
+let readingTimer = null;
+let canEarn = true;
+
 function openArticle(){
-  document.getElementById('articleContainer').innerHTML = "<h2>Earn Online Guide</h2><p>Read and earn safely.</p>";
+
+  if(!canEarn) return showToast("⏳ Wait before next reward");
+
+  currentArticleIndex = Math.floor(Math.random() * articles.length);
+  const text = articles[currentArticleIndex];
+
+  document.getElementById('articleContainer').innerHTML = `
+    <h3>📖 Article</h3>
+    <p>${text}</p>
+    <br>
+    <button class="btn read-btn" onclick="nextArticle()">Next Article</button>
+  `;
+
   document.getElementById('commentSection').style.display='block';
+
+  startReadingTimer();
+}
+
+function nextArticle(){
+  openArticle();
+}
+
+function startReadingTimer(){
+
+  clearTimeout(readingTimer);
+
+  let seconds = 30;
+
+  const interval = setInterval(()=>{
+    seconds--;
+    if(seconds <= 0){
+      clearInterval(interval);
+
+      userBalance += 5;
+      saveBalance();
+
+      showToast("✅ +5 pts for reading");
+
+      canEarn = false;
+      setTimeout(()=>{ canEarn = true; },5000);
+    }
+  },1000);
 }
 
 // ===== COMMENT =====
