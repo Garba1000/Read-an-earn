@@ -209,6 +209,11 @@ function openArticle(){
     <h3>📖 Article</h3>
     <p>${text}</p>
     <br>
+    <div style="margin-top:10px;background:#111;border-radius:8px;overflow:hidden;">
+      <div id="progressBar" style="height:6px;width:0%;background:#28a745;transition:width 1s linear;"></div>
+    </div>
+    <small id="timerText">⏳ 30s remaining</small>
+    <br><br>
     <button class="btn read-btn" onclick="nextArticle()">Next Article</button>
   `;
 
@@ -226,19 +231,34 @@ function startReadingTimer(){
   clearTimeout(readingTimer);
 
   let seconds = 30;
+  const progress = document.getElementById('progressBar');
+  const timerText = document.getElementById('timerText');
+
+  progress.style.width = '0%';
 
   const interval = setInterval(()=>{
     seconds--;
+
+    let percent = ((30 - seconds) / 30) * 100;
+    progress.style.width = percent + '%';
+
+    if(timerText) timerText.innerText = `⏳ ${seconds}s remaining`;
+
     if(seconds <= 0){
       clearInterval(interval);
 
       userBalance += 5;
       saveBalance();
 
+      if(timerText) timerText.innerText = "✅ Reward unlocked";
+
       showToast("✅ +5 pts for reading");
 
       canEarn = false;
       setTimeout(()=>{ canEarn = true; },5000);
+    }
+  },1000);
+},5000);
     }
   },1000);
 }
