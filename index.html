@@ -3,9 +3,11 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Read an earn Bot</title>
+<title>Read and Earn Bot</title>
+
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
+
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:"Roboto",sans-serif;}
 body{background:#000;color:white;padding:20px;padding-top:120px;}
@@ -22,12 +24,11 @@ body{background:#000;color:white;padding:20px;padding-top:120px;}
 #commentSection{margin-top:15px;}
 #commentBox, #submitComment{display:block;margin-top:10px;padding:8px;border-radius:6px;border:1px solid #555;background:#111;color:white;width:100%;}
 .popup{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#111;padding:20px;border-radius:12px;z-index:200;max-width:400px;width:90%;text-align:center;}
-.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#28a745;color:white;padding:10px 20px;border-radius:8px;opacity:0;transition:opacity 0.5s ease-in-out;z-index:200;}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#28a745;color:white;padding:10px 20px;border-radius:8px;opacity:0;transition:opacity 0.5s;}
 .toast.show{opacity:1;}
-#joinPopup {position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:9999;display:none;align-items:center;justify-content:center;flex-direction:column;}
-#joinPopup a{background:#007bff;color:white;padding:12px 20px;border-radius:10px;font-weight:bold;text-decoration:none;margin-top:20px;}
 </style>
 </head>
+
 <body>
 
 <div class="header">
@@ -37,8 +38,8 @@ body{background:#000;color:white;padding:20px;padding-top:120px;}
 
 <div class="button-container">
 <button class="btn read-btn" onclick="openArticle()">Read & Earn</button>
-<button class="btn task-btn" onclick="showTaskAd()">Task & Earn</button>
-<button class="btn watch-btn" onclick="showWatchAd()">Watch Videos</button>
+<button class="btn task-btn" onclick="showTaskAd()">Complete Ad Task (+Reward)</button>
+<button class="btn watch-btn" onclick="showWatchAd()">Watch Ad (+Reward)</button>
 <button class="btn withdraw-btn" onclick="openWithdraw()">Withdraw</button>
 <button class="btn referral-btn" onclick="copyReferral()">Referral</button>
 </div>
@@ -50,34 +51,31 @@ body{background:#000;color:white;padding:20px;padding-top:120px;}
 <button id="submitComment" class="btn read-btn" onclick="submitComment()">Submit Comment</button>
 </div>
 
-<!-- Withdraw Popup -->
+<!-- Withdraw -->
 <div class="popup" id="withdrawPopup" style="display:none;">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><h2>Withdraw Balance</h2><span onclick="closeWithdraw()" style="cursor:pointer">X</span></div>
+<h2>Withdraw Balance</h2>
 <p>Your balance: <span id="withdrawPoints">0</span> pts</p>
-<select id="withdrawMethod" style="margin-bottom:10px;width:100%;padding:8px;border-radius:6px;background:#111;color:white;border:1px solid #555;">
+
+<select id="withdrawMethod">
 <option value="payeer">Payeer</option>
 <option value="skrill">Skrill</option>
 <option value="wire">Wire Transfer</option>
 <option value="usdt">USDT TRC20</option>
 </select>
-<input id="withdrawDetails" placeholder="Account / Wallet details" style="margin-bottom:10px;width:100%;padding:8px;border-radius:6px;background:#111;color:white;border:1px solid #555;">
-<button class="btn withdraw-btn" onclick="submitWithdraw()">Send Withdraw Request</button>
+
+<input id="withdrawDetails" placeholder="Account / Wallet details">
+<button class="btn withdraw-btn" onclick="submitWithdraw()">Send Request</button>
+<button onclick="closeWithdraw()">Close</button>
 </div>
 
 <div class="toast" id="toast"></div>
 
-<!-- JOIN POPUP -->
-<div id="joinPopup">
-<h2>🚫 You must join our channel to continue</h2>
-<a href="https://t.me/earnzoners" target="_blank" onclick="joinChannelClicked()">👉 Join @Earnzonechannel</a>
-</div>
-
 <script>
-const tg = window.Telegram.WebApp ?? { sendData: () => {}, expand: () => {} };
+const tg = window.Telegram.WebApp ?? {};
 tg.expand();
 
-let storedBalance = parseInt(localStorage.getItem('userBalance'));
-let userBalance = isNaN(storedBalance) ? 0 : storedBalance;
+// ===== BALANCE =====
+let userBalance = parseInt(localStorage.getItem('userBalance')) || 0;
 updateBalance();
 
 function updateBalance(){
@@ -87,125 +85,160 @@ function saveBalance(){
   localStorage.setItem('userBalance', userBalance);
   updateBalance();
 }
+
+// ===== TOAST =====
 function showToast(msg){
   const t=document.getElementById('toast');
   t.innerText=msg;
   t.classList.add('show');
-  setTimeout(()=>{t.classList.remove('show');},3000);
+  setTimeout(()=>t.classList.remove('show'),3000);
 }
 
-// --- Adsgram Reward on Page Load ---
+// ===== ADS INIT (NO AUTO SHOW) =====
 const rewardAd = window.Adsgram.init({ blockId: "21443" });
-rewardAd.show().then(res => {
-  if(res.done){ userBalance += 100; saveBalance(); }
-  document.getElementById("joinPopup").style.display = "flex";
-}).catch(err=>{
-  console.log(err);
-  document.getElementById("joinPopup").style.display = "flex";
-});
 
-// JOIN BUTTON
-function joinChannelClicked(){
-  if(!localStorage.getItem("joinedRewardGiven")){
-    userBalance += 100;
-    saveBalance();
-    localStorage.setItem("joinedRewardGiven","yes");
-    showToast("🎉 Thanks for joining! +100 pts");
-  }
-  document.getElementById("joinPopup").style.display = "none";
+// ===== SMART SYSTEM =====
+let adCooldown = false;
+let adCount = parseInt(localStorage.getItem("adCount")) || 0;
+let lastReset = localStorage.getItem("lastReset") || Date.now();
+const DAILY_LIMIT = 20;
+
+if (Date.now() - lastReset > 86400000) {
+  adCount = 0;
+  localStorage.setItem("lastReset", Date.now());
+  localStorage.setItem("adCount", adCount);
 }
 
-// READ ARTICLE
-function openArticle(){
-  const articleText = `
-<h2>Top 5 Ways to Make Money Online in 2025</h2>
-<p>2025 offers huge opportunities for digital income. Freelancing, AI content creation, affiliate marketing, online courses, and smart crypto investing are among the best ways to earn.</p>
-<ol>
-<li><b>Freelancing:</b> Offer skills on Fiverr, Upwork, etc.</li>
-<li><b>AI Content:</b> Use ChatGPT to create content for businesses.</li>
-<li><b>Affiliate Marketing:</b> Promote products and earn commissions.</li>
-<li><b>Online Courses & Ebooks:</b> Teach skills and sell online.</li>
-<li><b>Crypto & NFT:</b> Staking, NFTs, and P2E gaming for high returns.</li>
-</ol>`;
-  document.getElementById('articleContainer').innerHTML = articleText;
-  document.getElementById('commentSection').style.display='block';
+function getRandomReward(){
+  return Math.floor(Math.random() * 71) + 80; // 80 -150
 }
 
-// COMMENT SUBMIT
-function submitComment(){
-  const commentText = document.getElementById("commentBox").value.trim();
-  if(!commentText){ showToast("❌ Write a comment first!"); return; }
-  if(userBalance < 6000){ showToast("❌ You don't have 6000 points to comment!"); return; }
-  userBalance -= 6000; saveBalance();
-  showToast("✅ Comment submitted successfully!");
-  document.getElementById("commentBox").remove();
-  document.getElementById("submitComment").remove();
+// ===== WATCH AD =====
+function showWatchAd(){
+
+  if(adCooldown) return showToast("⏳ Wait for cooldown...");
+  if(adCount >= DAILY_LIMIT) return showToast("🚫 Daily limit reached");
+
+  let timeLeft = 5;
+  showToast("⏳ Starting in 5s");
+
+  const countdown = setInterval(()=>{
+    timeLeft--;
+    if(timeLeft > 0){
+      showToast("⏳ " + timeLeft + "s...");
+    } else {
+      clearInterval(countdown);
+
+      showToast("🔄 Processing...");
+
+      rewardAd.show().then(res=>{
+        if(res.done){
+          let reward = getRandomReward();
+          userBalance += reward;
+          saveBalance();
+
+          adCount++;
+          localStorage.setItem("adCount", adCount);
+
+          showToast(`✅ +${reward} pts earned`);
+        }
+      }).catch(()=>showToast("❌ Ad failed"));
+
+      adCooldown = true;
+      setTimeout(()=>adCooldown=false,10000);
+    }
+  },1000);
 }
 
-<!-- ✅ UPDATED TASK SYSTEM: ONLY 1 TASK AT A TIME -->
+// ===== TASK SYSTEM =====
 let taskInProgress = false;
-
-const taskBlocks = ["task-21450","task-21446","task-21449","task-21447","task-21448"];
+const taskBlocks = ["task-21450","task-21446","task-21449"];
 
 function showTaskAd(){
 
-  if(taskInProgress){
-    showToast("❌ Complete the current task first!");
-    return;
-  }
+  if(taskInProgress) return showToast("Finish current task first");
+  if(adCount >= DAILY_LIMIT) return showToast("Daily limit reached");
 
   taskInProgress = true;
 
-  const blockId = taskBlocks[Math.floor(Math.random() * taskBlocks.length)];
-  const taskContainer = document.createElement('div');
-  taskContainer.innerHTML = `<adsgram-task data-block-id="${blockId}" class="task"></adsgram-task>`;
-  document.body.appendChild(taskContainer);
+  const blockId = taskBlocks[Math.floor(Math.random()*taskBlocks.length)];
+  const container = document.createElement('div');
+  container.innerHTML = `<adsgram-task data-block-id="${blockId}"></adsgram-task>`;
+  document.body.appendChild(container);
 
-  const taskEl = taskContainer.querySelector('adsgram-task');
+  const el = container.querySelector('adsgram-task');
 
-  taskEl.addEventListener('reward', () => {
-    userBalance += 100;
+  el.addEventListener('reward', () => {
+
+    let reward = getRandomReward();
+    userBalance += reward;
     saveBalance();
-    showToast("✅ Task completed! +100 pts");
-    taskContainer.remove();
+
+    adCount++;
+    localStorage.setItem("adCount", adCount);
+
+    showToast(`✅ Task done +${reward}`);
+
+    container.remove();
     taskInProgress = false;
+
   }, {once:true});
 }
 
-// WATCH VIDEO
-function showWatchAd(){
-  rewardAd.show().then(res => {
-    if(res.done){ userBalance += 100; saveBalance(); showToast("✅ Video watched! +100 pts"); }
-  }).catch(console.log);
+// ===== ARTICLE =====
+function openArticle(){
+  document.getElementById('articleContainer').innerHTML = "<h2>Earn Online Guide</h2><p>Read and earn safely.</p>";
+  document.getElementById('commentSection').style.display='block';
 }
 
-// REFERRAL
+// ===== COMMENT =====
+function submitComment(){
+  let txt=document.getElementById("commentBox").value.trim();
+  if(!txt) return showToast("Write something");
+  if(userBalance < 6000) return showToast("Need 6000 pts");
+
+  userBalance -= 6000;
+  saveBalance();
+  showToast("Comment submitted");
+}
+
+// ===== REFERRAL =====
 function copyReferral(){
-  const ref = "https://t.me/Earnzonesbot?start=konnet" + Math.floor(Math.random()*99999);
+  let ref="https://t.me/Earnzonesbot?start="+Math.floor(Math.random()*99999);
   navigator.clipboard.writeText(ref);
-  showToast("Referral link copied!");
+  showToast("Copied!");
 }
 
-// WITHDRAW
+// ===== WITHDRAW =====
 const MIN_WITHDRAW = 50000;
+
 function openWithdraw(){
-  if(userBalance < MIN_WITHDRAW){ showToast("❌ Minimum 50,000 pts required."); return; }
+  if(userBalance < MIN_WITHDRAW) return showToast("Min 50k pts");
   document.getElementById('withdrawPopup').style.display='block';
   document.getElementById('withdrawPoints').innerText=userBalance;
 }
+
 function closeWithdraw(){
   document.getElementById('withdrawPopup').style.display='none';
 }
+
 function submitWithdraw(){
-  if(userBalance < MIN_WITHDRAW){ showToast("❌ Minimum 50,000 pts required."); return; }
-  const method = document.getElementById('withdrawMethod').value;
-  const details = document.getElementById('withdrawDetails').value.trim();
-  if(!details){ showToast("❌ Enter account/wallet details."); return; }
-  tg.sendData(JSON.stringify({action:"withdraw", amount:MIN_WITHDRAW, method, details}));
-  showToast(`✅ Withdraw request of 50,000 pts sent via ${method}`);
-  userBalance -= MIN_WITHDRAW; saveBalance(); closeWithdraw();
+  let method=document.getElementById('withdrawMethod').value;
+  let details=document.getElementById('withdrawDetails').value;
+
+  if(!details) return showToast("Enter details");
+
+  tg.sendData(JSON.stringify({action:"withdraw",amount:MIN_WITHDRAW,method,details}));
+
+  userBalance -= MIN_WITHDRAW;
+  saveBalance();
+
+  showToast("Withdraw sent");
+  closeWithdraw();
 }
 </script>
+
 <script async src="https://adsgram.io/js/ad.js"></script>
+
 </body>
 </html>
