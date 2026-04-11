@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Nova Miner — Earn System</title>
+<title>Nova Miner — Earn Smart</title>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"/>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -12,7 +12,7 @@
 <style>
 :root{
   --bg:#0a0d12;
-  --panel:#11161f;
+  --card:#111723;
   --primary:#00d4ff;
   --text:#eaf2f8;
   --sub:#7c8b99;
@@ -26,54 +26,52 @@ body{
 }
 
 /* HEADER */
-.top{
-  padding:14px;
+.header{
   text-align:center;
+  padding:14px;
   font-weight:bold;
   color:var(--primary);
 }
 
 /* BALANCE */
 .balance{
-  margin:10px;
+  margin:12px;
   padding:18px;
   border-radius:14px;
   background:linear-gradient(135deg,#00d4ff,#0077ff);
   text-align:center;
   color:#000;
 }
+.balance h2{margin:0}
 
-.balance span{
-  font-size:28px;
-  display:block;
-}
-
-/* ACTION BAR */
-.actions{
-  display:flex;
+/* GRID */
+.grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
   gap:10px;
   padding:10px;
 }
 
-.actions button{
-  flex:1;
+.card{
+  background:var(--card);
+  padding:14px;
+  border-radius:12px;
+}
+
+/* BUTTON */
+.btn{
+  width:100%;
   padding:12px;
   border:none;
   border-radius:10px;
   background:var(--primary);
   font-weight:bold;
+  cursor:pointer;
 }
 
-/* CARDS */
-.section{
-  padding:10px;
-}
-
-.box{
-  background:var(--panel);
-  padding:14px;
-  border-radius:12px;
-  margin-bottom:10px;
+.btn.alt{
+  background:#1e293b;
+  color:#fff;
 }
 
 /* NAV */
@@ -82,7 +80,7 @@ body{
   bottom:0;
   width:100%;
   display:flex;
-  background:#0e141c;
+  background:#0f1620;
 }
 
 .nav button{
@@ -93,74 +91,62 @@ body{
   color:var(--sub);
 }
 
-.nav .on{
+.nav .active{
   color:var(--primary);
 }
 
-/* POPUP */
-.popup{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,0.85);
-  display:none;
-  align-items:center;
-  justify-content:center;
-  flex-direction:column;
-}
-
-.popup button{
-  padding:12px 20px;
-  border:none;
-  border-radius:10px;
-  background:var(--primary);
-  color:#000;
+/* TASK AREA */
+#taskArea{
+  margin-top:10px;
 }
 </style>
 </head>
 
 <body>
 
-<div class="top">⚡ Nova Miner</div>
-
-<div id="app">
+<div class="header">⚡ Nova Miner</div>
 
 <!-- HOME -->
-<div id="home">
+<div id="homePage">
 
 <div class="balance">
-  Balance
-  <span>$<b id="bal">0.000000</b></span>
+  <div>Total Balance</div>
+  <h2>$<span id="balance">0.000000</span></h2>
 </div>
 
-<div class="actions">
-  <button onclick="adsReward()">Watch Ad</button>
-  <button onclick="startBonus()">Bonus</button>
+<div class="grid">
+
+<div class="card">
+  <div>Today's Earnings</div>
+  <h3 id="today">0.000000</h3>
 </div>
 
-<div class="section">
-
-<div class="box">
-  <div>Today's Profit</div>
-  <b id="today">0.000000</b>
+<div class="card">
+  <div>Credits</div>
+  <h3 id="credits">20</h3>
 </div>
 
-<div class="box">
-  <div>Energy</div>
-  <b id="energy">20</b>
+<div class="card">
+  <button class="btn" onclick="claimCredits()">🎁 Claim Credits</button>
 </div>
 
-<div class="box">
-  <button onclick="claimTask()">Claim Gold</button>
+<div class="card">
+  <button class="btn alt" onclick="watchAd()">🎥 Watch Ad (Optional Bonus)</button>
+</div>
+
+<div class="card" style="grid-column: span 2;">
+  <button class="btn alt" onclick="startBonus()">🚀 Start Bonus Tasks</button>
   <div id="taskArea"></div>
 </div>
 
 </div>
-
 </div>
 
 <!-- WALLET -->
-<div id="wallet" style="display:none;padding:10px;">
-<div class="box">
+<div id="walletPage" style="display:none;padding:10px;">
+<div class="card">
+<h3>Withdraw</h3>
+
 <select id="method">
 <option>Bank</option>
 <option>Litecoin</option>
@@ -170,30 +156,25 @@ body{
 
 <input id="details" placeholder="Enter details">
 
-<button onclick="withdraw()">Withdraw</button>
+<button class="btn" onclick="withdraw()">Withdraw</button>
 </div>
 </div>
 
 <!-- INFO -->
-<div id="info" style="display:none;padding:10px;">
-<div class="box">
-Earn by mining, ads, and tasks.
+<div id="infoPage" style="display:none;padding:10px;">
+<div class="card">
+<p style="color:var(--sub)">
+This app allows you to earn by mining and optional ads.
+Watching ads is not required but gives bonus rewards.
+</p>
 </div>
-</div>
-
 </div>
 
 <!-- NAV -->
 <div class="nav">
-<button class="on" onclick="nav('home',this)">Home</button>
-<button onclick="nav('wallet',this)">Wallet</button>
-<button onclick="nav('info',this)">Info</button>
-</div>
-
-<!-- POPUP -->
-<div class="popup" id="popup">
-<h3>Join Channel</h3>
-<button onclick="join()">Join & Earn</button>
+<button class="active" onclick="showPage('homePage',this)">Home</button>
+<button onclick="showPage('walletPage',this)">Wallet</button>
+<button onclick="showPage('infoPage',this)">Info</button>
 </div>
 
 <script>
@@ -204,35 +185,36 @@ tg.expand();
 let state = {
   balance: Number(localStorage.balance)||0,
   today: Number(localStorage.today)||0,
-  energy: Number(localStorage.energy)||20
+  credits: Number(localStorage.credits)||20
 };
 
 function save(){
   localStorage.balance = state.balance;
   localStorage.today = state.today;
-  localStorage.energy = state.energy;
+  localStorage.credits = state.credits;
 }
 
 /* UI */
 function render(){
-  bal.textContent = state.balance.toFixed(6);
-  today.textContent = state.today.toFixed(6);
-  energy.textContent = state.energy;
+  document.getElementById("balance").textContent = state.balance.toFixed(6);
+  document.getElementById("today").textContent = state.today.toFixed(6);
+  document.getElementById("credits").textContent = state.credits;
 }
 
 /* NAV */
-function nav(page,btn){
-  home.style.display="none";
-  wallet.style.display="none";
-  info.style.display="none";
+function showPage(page,btn){
+  homePage.style.display="none";
+  walletPage.style.display="none";
+  infoPage.style.display="none";
 
   document.getElementById(page).style.display="block";
 
-  document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("on"));
-  btn.classList.add("on");
+  document.querySelectorAll(".nav button")
+  .forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
 }
 
-/* MINING */
+/* MINING (FREE) */
 setInterval(()=>{
   state.balance += 0.000001;
   state.today += 0.000001;
@@ -243,26 +225,60 @@ setInterval(()=>{
 /* ADSGRAM */
 const ad = Adsgram.init({blockId:"27164"});
 
-/* WATCH */
-function adsReward(){
-  ad.show().then(r=>{
-    if(r.done){
+/* WATCH AD (OPTIONAL) */
+function watchAd(){
+  ad.show().then(res=>{
+    if(res.done){
       state.balance += 0.002;
-      state.energy += 5;
-      render(); save();
+      state.credits += 5;
+      render();
+      save();
+      alert("🎉 Bonus received!");
     }
   });
 }
 
-/* CLAIM TASK */
-const tasks = ["27165","27166","27167","27168"];
+/* CLAIM (NO ADS REQUIRED) */
+function claimCredits(){
+  let reward = (Math.random()*3 + 2).toFixed(2);
 
-function claimTask(){
+  state.credits += Number(reward);
+  render();
+  save();
+
+  alert("You earned " + reward + " credits!");
+
+  document.getElementById("taskArea").innerHTML = `
+  <button class="btn alt" onclick="watchAd()">
+    🎥 Watch Ad for EXTRA reward
+  </button>`;
+}
+
+/* BONUS TASKS (OPTIONAL ADS) */
+const tasks = ["task-27165","task-27166","task-27167","task-27168"];
+let step = 0;
+
+function startBonus(){
+  step = 0;
+  loadTask();
+}
+
+function loadTask(){
+  if(step >= 4){
+    state.credits += 40;
+    render();
+    save();
+    taskArea.innerHTML="";
+    alert("🎉 Bonus Completed!");
+    return;
+  }
+
   const id = tasks[Math.floor(Math.random()*tasks.length)];
 
   taskArea.innerHTML = `
-  <adsgram-task data-block-id="task-${id}"></adsgram-task>
-  <button id="doneBtn" style="display:none">Claim</button>
+  <div>Task ${step+1}/4</div>
+  <adsgram-task data-block-id="${id}"></adsgram-task>
+  <button id="nextBtn" class="btn" style="margin-top:10px;display:none;">Next</button>
   `;
 
   let done=false;
@@ -270,77 +286,23 @@ function claimTask(){
   taskArea.querySelector("adsgram-task")
   .addEventListener("reward",()=>{
     done=true;
-    doneBtn.style.display="block";
+    document.getElementById("nextBtn").style.display="block";
   },{once:true});
 
-  doneBtn.onclick=()=>{
-    if(!done)return alert("Complete task first");
-    state.energy +=5;
-    render(); save();
-    taskArea.innerHTML="";
-  }
-}
-
-/* BONUS */
-let step=0;
-
-function startBonus(){
-  step=0;
-  nextBonus();
-}
-
-function nextBonus(){
-  if(step>=4){
-    state.energy+=40;
-    render(); save();
-    taskArea.innerHTML="";
-    alert("Bonus completed");
-    return;
-  }
-
-  const id = tasks[Math.floor(Math.random()*tasks.length)];
-
-  taskArea.innerHTML = `
-  <div>Step ${step+1}/4</div>
-  <adsgram-task data-block-id="task-${id}"></adsgram-task>
-  <button id="next" style="display:none">Next</button>
-  `;
-
-  let ok=false;
-
-  taskArea.querySelector("adsgram-task")
-  .addEventListener("reward",()=>{
-    ok=true;
-    next.style.display="block";
-  },{once:true});
-
-  next.onclick=()=>{
-    if(!ok)return;
+  document.getElementById("nextBtn").onclick = ()=>{
+    if(!done) return alert("Complete task first");
     step++;
-    nextBonus();
-  }
+    loadTask();
+  };
 }
 
 /* WITHDRAW */
 function withdraw(){
   if(state.balance < 10){
-    alert("Minimum $10");
+    alert("Minimum withdrawal is $10");
     return;
   }
-  alert("Request sent");
-}
-
-/* PRELOAD */
-Adsgram.init({blockId:"27229"}).show().finally(()=>{
-  popup.style.display="flex";
-});
-
-/* JOIN */
-function join(){
-  state.energy+=4;
-  render(); save();
-  popup.style.display="none";
-  window.open("https://t.me/earnzoners");
+  alert("Withdrawal request sent");
 }
 
 render();
