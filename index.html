@@ -10,62 +10,47 @@
 body{
     margin:0;
     font-family:Arial;
-    background:#0f172a;
+    background:#000;
     color:#fff;
 }
 
 .navbar{
     display:flex;
     justify-content:space-between;
-    padding:12px;
-    background:#22c55e;
+    padding:10px;
+    background:#00ADB5;
     color:#000;
 }
 
 .dashboard{
-    padding:12px;
+    padding:10px;
+    background:#111;
     margin:10px;
-    background:#111827;
     border-radius:10px;
 }
 
 .stat{
     display:flex;
     justify-content:space-between;
-    margin:6px 0;
+    margin:5px 0;
 }
 
 button{
     width:100%;
     padding:10px;
-    margin-top:8px;
+    margin-top:6px;
     border:none;
     border-radius:8px;
     font-weight:bold;
-    background:#22c55e;
+    background:#00ADB5;
 }
 
-.games{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
-    gap:10px;
-    padding:10px;
-}
-
-.card{
-    background:#1f2933;
-    padding:12px;
-    border-radius:8px;
-    text-align:center;
-    cursor:pointer;
-}
-
+/* GAME */
 #gameScreen{
     display:none;
     position:fixed;
     width:100%;
     height:100%;
-    top:0;
     background:#000;
 }
 
@@ -80,28 +65,38 @@ iframe{
 <body>
 
 <div class="navbar">
-    <b>🎮 Hazex Hub</b>
-    <div>💰 <span id="bal">0</span></div>
+    <h3>🎮 Hazex Hub</h3>
+    <div>💰 <span id="balance">0</span></div>
 </div>
 
 <div class="dashboard">
     <div class="stat">👤 ID: <span id="uid"></span></div>
     <div class="stat">⏳ Bonus Timer: <span id="timer">Ready</span></div>
 
-    <button onclick="claimPlayReward()">🎯 Claim Play Reward</button>
-    <button onclick="watchAd()">🎁 Optional Bonus</button>
-</div>
-
-<div id="home">
-<div class="games">
-    <div class="card" onclick="playGame('subway')">Subway</div>
-    <div class="card" onclick="playGame('pacman')">Pacman</div>
-</div>
+    <button onclick="startGame()">▶ Play Subway</button>
+    <button onclick="claimPlay()">🎯 Claim Play Reward</button>
+    <button onclick="dailyBonus()">🎁 Daily Bonus</button>
+    <button onclick="watchAd()">🎁 Bonus Reward</button>
+    <button onclick="copyRef()">👥 Invite</button>
+    <button onclick="openWithdraw()">💸 Withdraw</button>
 </div>
 
 <div id="gameScreen">
 <button onclick="exitGame()">⬅ Back</button>
 <iframe id="frame"></iframe>
+</div>
+
+<div id="withdrawBox" style="display:none;padding:10px;">
+<h3>Withdraw</h3>
+
+<select id="method">
+<option>Litecoin</option>
+<option>USDT TRC20</option>
+</select>
+
+<input id="address" placeholder="Wallet Address" style="width:100%;padding:8px;margin-top:10px;">
+
+<button onclick="submitWithdraw()">Submit</button>
 </div>
 
 <script>
@@ -111,69 +106,75 @@ tg.expand();
 let userId = tg.initDataUnsafe?.user?.id || Math.floor(Math.random()*99999);
 document.getElementById("uid").innerText = userId;
 
-let balance = parseInt(localStorage.getItem("bal")) || 0;
-document.getElementById("bal").innerText = balance;
+let balance = parseInt(localStorage.getItem("balance")) || 0;
+document.getElementById("balance").innerText = balance;
 
-/* =====================
-   GAME TRACKING
-===================== */
+/* GAME */
 let playStart = 0;
 
-function playGame(name){
-    document.getElementById("home").style.display="none";
+function startGame(){
     document.getElementById("gameScreen").style.display="block";
+    document.getElementById("frame").src =
+    "https://freeonlinegames.github.io/subway-surfers-tokyo/";
 
     playStart = Date.now();
-
-    const games = {
-        subway:"https://freeonlinegames.github.io/subway-surfers-tokyo/",
-        pacman:"https://bward2.github.io/pacman-js/"
-    };
-
-    document.getElementById("frame").src = games[name];
 }
 
 function exitGame(){
-    document.getElementById("home").style.display="block";
     document.getElementById("gameScreen").style.display="none";
 }
 
-/* =====================
-   PLAY REWARD (REAL ENGAGEMENT)
-===================== */
-let lastClaim = localStorage.getItem("playClaim") || 0;
+/* PLAY REWARD */
+let lastPlay = localStorage.getItem("play") || 0;
 
-function claimPlayReward(){
+function claimPlay(){
     let now = Date.now();
-
-    if(now - lastClaim < 60000){
-        alert("Play longer to earn reward");
-        return;
-    }
 
     if(now - playStart < 60000){
         alert("Play at least 1 minute");
         return;
     }
 
-    balance += 20;
-    localStorage.setItem("bal", balance);
-    document.getElementById("bal").innerText = balance;
+    if(now - lastPlay < 60000){
+        alert("Wait before next reward");
+        return;
+    }
 
-    lastClaim = now;
-    localStorage.setItem("playClaim", lastClaim);
+    balance += 20;
+    localStorage.setItem("balance",balance);
+    document.getElementById("balance").innerText = balance;
+
+    lastPlay = now;
+    localStorage.setItem("play",lastPlay);
 }
 
-/* =====================
-   ADS (SAFE USE)
-===================== */
-let adCooldown = 180000; // 3 mins
+/* DAILY */
+let lastDaily = localStorage.getItem("daily") || 0;
+
+function dailyBonus(){
+    let now = Date.now();
+
+    if(now - lastDaily < 86400000){
+        alert("Come back tomorrow");
+        return;
+    }
+
+    balance += 30;
+    localStorage.setItem("balance",balance);
+    document.getElementById("balance").innerText = balance;
+
+    lastDaily = now;
+    localStorage.setItem("daily",lastDaily);
+}
+
+/* ADS SAFE */
 let lastAd = 0;
+let cooldown = 180000;
 
 function watchAd(){
     let now = Date.now();
 
-    if(now - lastAd < adCooldown){
+    if(now - lastAd < cooldown){
         alert("Wait before next bonus");
         return;
     }
@@ -184,24 +185,38 @@ function watchAd(){
         blockId:"YOUR_BLOCK_ID"
     }).then(()=>{
         balance += 10;
-        localStorage.setItem("bal", balance);
-        document.getElementById("bal").innerText = balance;
+        localStorage.setItem("balance",balance);
+        document.getElementById("balance").innerText = balance;
 
         lastAd = now;
     });
 }
 
-/* =====================
-   TIMER UI
-===================== */
-function updateTimer(){
-    let now = Date.now();
-    let diff = adCooldown - (now - lastAd);
-
-    document.getElementById("timer").innerText =
-        diff > 0 ? Math.ceil(diff/1000)+"s" : "Ready";
+/* REF */
+function copyRef(){
+    let link = "https://t.me/YOURBOT?start="+userId;
+    navigator.clipboard.writeText(link);
+    alert("Invite link copied");
 }
-setInterval(updateTimer,1000);
+
+/* WITHDRAW */
+function openWithdraw(){
+    document.getElementById("withdrawBox").style.display="block";
+}
+
+function submitWithdraw(){
+    if(balance < 15000){
+        alert("Minimum 15,000 points");
+        return;
+    }
+
+    let method = document.getElementById("method").value;
+    let address = document.getElementById("address").value;
+
+    if(!address)return;
+
+    tg.sendData(`Withdraw\n${method}\n${address}\nID:${userId}`);
+}
 </script>
 
 </body>
